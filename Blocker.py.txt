@@ -1,0 +1,20 @@
+from collections import defaultdict
+
+MAX_ATTEMPTS = 3
+attempts = defaultdict(int)
+blocked_ips = "blocked_ips.txt"
+
+def is_blocked(ip):
+    try:
+        with open(blocked_ips, "r") as f:
+            return ip in f.read()
+    except FileNotFoundError:
+        return False
+
+def register_attempt(ip):
+    attempts[ip] += 1
+    if attempts[ip] >= MAX_ATTEMPTS:
+        with open(blocked_ips, "a") as f:
+            f.write(ip + "\n")
+        return True
+    return False

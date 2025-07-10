@@ -1,0 +1,44 @@
+import socket
+import threading
+from logger import log_attempt
+from blocker import is_blocked, register_attempt
+
+HOST = '0.0.0.0'
+PORT = 2222
+
+def handle_client(client_socket, addr):
+    ip = addr[0]
+    if is_blocked(ip):
+        print(f"[BLOCKED] Connection attempt from blocked IP: {ip}")
+        client_socket.close()
+        return
+
+    client_socket.send(b"Username: ")
+    username = client_socket.recv(1024).decode().strip()
+
+    client_socket.send(b"Password: ")
+    password = client_socket.recv(1024).decode().strip()
+
+    log_attempt(ip, username, password)
+    blocked = register_attempt(ip)
+
+    if blocked:
+        client_socket.send(b"You are blocked!\n")
+    else:
+        client_socket.send(b"Access Denied.\n")
+
+    client_socket.close()
+
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((HOST, PORT))
+    server.listen(5)
+    print(f"[+] Honeypot running on port {PORT}")
+
+    while True:
+        client_socket, addr = server.accept()
+        thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+        thread.start()
+
+if _name_ == "_main_":
+    start_server()
